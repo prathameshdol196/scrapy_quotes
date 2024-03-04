@@ -34,7 +34,7 @@ class QuotesSpider(scrapy.Spider):
 
                 csv_writer.writerow([title, author, ', '.join(tags)])
 
-            pages += 1
+        pages += 1
 
         # go to next page
         next_page = response.css(".next>a").attrib["href"]
