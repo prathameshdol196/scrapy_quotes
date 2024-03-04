@@ -20,7 +20,7 @@ class QuotesSpider(scrapy.Spider):
     def parse(self, response):
         quotes = response.css(".quote")
         pages = 0
-        with open("data.csv", "a", newline='', encoding='utf-8') as csv_file:
+        with open("data.csv", "a", newline='') as csv_file:
             # Create a CSV writer object
             csv_writer = csv.writer(csv_file)
 
@@ -34,7 +34,7 @@ class QuotesSpider(scrapy.Spider):
 
                 csv_writer.writerow([title, author, ', '.join(tags)])
 
-                pages += 1
+            pages += 1
 
         # go to next page
         next_page = response.css(".next>a").attrib["href"]
