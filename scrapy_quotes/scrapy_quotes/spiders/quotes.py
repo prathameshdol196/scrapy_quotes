@@ -1,5 +1,7 @@
+
+
 import scrapy
-import json \
+import csv
 
 
 class QuotesSpider(scrapy.Spider):
@@ -9,17 +11,7 @@ class QuotesSpider(scrapy.Spider):
 
     def start_requests(self):
         urls = [
-            "https://quotes.toscrape.com/",
-            "https://quotes.toscrape.com/page/2/",
-            "https://quotes.toscrape.com/page/3/",
-            "https://quotes.toscrape.com/page/4/",
-            "https://quotes.toscrape.com/page/5/",
-            "https://quotes.toscrape.com/page/6/",
-            "https://quotes.toscrape.com/page/7/",
-            "https://quotes.toscrape.com/page/8/",
-            "https://quotes.toscrape.com/page/9/",
-            "https://quotes.toscrape.com/page/10/"
-
+            "https://quotes.toscrape.com/page/1/"
         ]
 
         for url in urls:
@@ -27,25 +19,29 @@ class QuotesSpider(scrapy.Spider):
 
     def parse(self, response):
         quotes = response.css(".quote")
+        pages = 0
+        with open("data.csv", "a", newline='', encoding='utf-8') as csv_file:
+            # Create a CSV writer object
+            csv_writer = csv.writer(csv_file)
 
-        quotes_data = []
+            # Write the header row
+            csv_writer.writerow(["Title", "Author", "Tags"])
 
-        json_data = json.dumps(quotes_data, indent=4)
+            for quote in quotes:
+                title = quote.css(".text::text").get()
+                author = quote.css(".author::text").get()
+                tags = quote.css(".tag::text").getall()
 
-        with open("data.json", "w") as json_file:
-            json_file.write(json_data)
+                csv_writer.writerow([title, author, ', '.join(tags)])
 
-        for quote in quotes:
-            title = quote.css(".text::text").get()
-            author = quote.css(".author::text").get()
-            tags = quote.css(".tag::text").getall()
+                pages += 1
 
-            data = {
-                "title": title,
-                "author": author,
-                "tags": tags
-            }
+        # go to next page
+        next_page = response.css(".next>a").attrib["href"]
+        print(next_page)
+        if next_page:
+            yield response.follow(next_page, callback=self.parse)
 
-            quotes_data.append(data)
+        print(f"scraped {pages} pages ######################################################################")
 
 
