@@ -1,37 +1,44 @@
 import scrapy
 import os
 import mysql.connector
+from sqlalchemy import create_engine, Column, Integer, String, Text
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+
+
+# Define the SQLAlchemy engine and create a session
+engine = create_engine(f'mysql+mysqlconnector://{os.environ["mysql_user"]}:{os.environ["mysql_pass"]}@localhost')
+
+# Create the database if it doesn't exist
+engine.execute("CREATE DATABASE IF NOT EXISTS quotes")
+engine.execute("USE quotes")
+
+# Define a base class for declarative class definitions
+Base = declarative_base()
+
+
+# Define a simple table
+class Quote(Base):
+    __tablename__ = 'quotes'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(Text)
+    author = Column(String(255))
+    tags = Column(String(255))
+
+
+# Creates table in db
+Base.metadata.create_all(engine)
+
+# Create a session
+Session = sessionmaker(bind=engine)
+session = Session()
 
 
 class QuotesSpider(scrapy.Spider):
     name = "quotes"
     allowed_domains = ["toscrape.com"]
     start_urls = ["https://toscrape.com"]
-
-    def __init__(self):
-        self.connection = mysql.connector.connect(
-            host="localhost",
-            user=os.environ["mysql_user"],
-            password=os.environ["mysql_pass"]
-        )
-
-        self.cursor = self.connection.cursor()
-
-        # Create db if not exist
-        self.cursor.execute("CREATE DATABASE IF NOT EXISTS quotes")
-
-        self.connection.database = 'quotes'
-
-        self.cursor.execute("""
-                        CREATE TABLE IF NOT EXISTS quotes (
-                            id INT AUTO_INCREMENT PRIMARY KEY,
-                            title TEXT,
-                            author VARCHAR(255),
-                            tags TEXT
-                        )
-                    """)
-
-        self.connection.commit()
 
     def start_requests(self):
         urls = [
@@ -50,11 +57,11 @@ class QuotesSpider(scrapy.Spider):
             author = quote.css(".author::text").get()
             tags = quote.css(".tag::text").getall()
 
-            sql = "INSERT INTO quotes (title, author, tags) VALUES (%s, %s, %s)"
-            val = (title, author, ', '.join(tags))
+            # Create a new Quote instance
+            new_quote = Quote(title=title, author=author, tags=', '.join(tags))
+            session.add(new_quote)
 
-            self.cursor.execute(sql, val)
-            self.connection.commit()
+            session.commit()
 
         # go to next page
         next_page = response.css(".next>a").attrib["href"]

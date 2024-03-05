@@ -1,29 +1,32 @@
+import os
+from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
 
+# Create an engine to connect to the MySQL database
+engine = create_engine(f'mysql+mysqlconnector://{os.environ["mysql_user"]}:{os.environ["mysql_pass"]}@localhost/quotes')
 
+# Define a base class for declarative class definitions
+Base = declarative_base()
 
-import mysql.connector
+# Define the Quote class to represent the quotes table
+class Quote(Base):
+    __tablename__ = 'quotes'
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255))
+    author = Column(String(255))
+    tags = Column(String(255))
 
-# Connect to the MySQL database
-conn = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="5034",
-    database="quotes"
-)
+# Create a session to interact with the database
+Session = sessionmaker(bind=engine)
+session = Session()
 
-# Create a cursor object to execute SQL queries
-cursor = conn.cursor()
-
-# Execute a SELECT query to retrieve the data
-cursor.execute("SELECT * FROM quotes")
-
-# Fetch all rows from the result set
-rows = cursor.fetchall()
+# Query all rows from the quotes table
+quotes = session.query(Quote).all()
 
 # Print the retrieved data
-for row in rows:
-    print(row)
+for quote in quotes:
+    print(quote.id, quote.title, quote.author, quote.tags)
 
-# Close the cursor and connection
-cursor.close()
-conn.close()
+# Close the session
+session.close()
